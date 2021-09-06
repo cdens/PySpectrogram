@@ -9,5 +9,6 @@ Future improvements if I come back to this side project:
 * Advanced control over FFT parameters and filtering
 * Post-recording filtering to remove unwanted signals from the audio (high/low-pass filtering, regenerating audio from a subset of the spectrogram)
 
-![screenshot](example.png)
-![screenshot](example_saveplot.png)
+![screenshot](examples/screenshot1.png)
+![screenshot](examples/screenshot2.png)
+![screenshot](examples/screenshot3.png)

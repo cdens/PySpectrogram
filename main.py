@@ -311,10 +311,10 @@ class RunProgram(QMainWindow):
             self.alltabdata[curtabnum]["tabwidgets"]["repratetitle"] = QLabel("Repitition Rate (s): ")
             self.alltabdata[curtabnum]["tabwidgets"]["repratetitle"].setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.alltabdata[curtabnum]["tabwidgets"]["reprate"] = QDoubleSpinBox()
-            self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setRange(0.1, 1)
+            self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setRange(0.05, 1)
             self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setSingleStep(0.05)
             self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setDecimals(2)
-            self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setValue(0.3)
+            self.alltabdata[curtabnum]["tabwidgets"]["reprate"].setValue(0.1)
             
             self.alltabdata[curtabnum]["tabwidgets"]["alphatitle"] = QLabel("Taper Alpha Value: ")
             self.alltabdata[curtabnum]["tabwidgets"]["alphatitle"].setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -692,6 +692,8 @@ class RunProgram(QMainWindow):
         dt = self.alltabdata[curtabnum]["stats"]["reprate"]
         alpha = self.alltabdata[curtabnum]["stats"]["alpha"]
         
+        self.alltabdata[curtabnum]["stats"]["updateint"] = int(np.ceil(1/dt)) #updates visual once every second for live audio
+        
         #saving datasource
         self.alltabdata[curtabnum]["datasource"] = datasource
         
@@ -712,7 +714,7 @@ class RunProgram(QMainWindow):
         self.alltabdata[curtabnum]["Processor"].signals.statsupdated.connect(self.updatesettingsfromprocessor)
         self.alltabdata[curtabnum]["Processor"].signals.terminated.connect(self.updateUIfinal)
         self.alltabdata[curtabnum]["isprocessing"] = True
-            
+        self.alltabdata[curtabnum]["tabwidgets"]["start"].setEnabled(False)
         
         
     def stopprocessor(self):
@@ -757,7 +759,7 @@ class RunProgram(QMainWindow):
         self.alltabdata[curtabnum]["data"]["isplotted"].append(False)
         
         #update spectrogram every 5 points for realtime or 50 points for audio (should be every 1 sec for a 10Hz reprate)
-        if (maxnum == 0 and i%2==0) or (maxnum > 0 and i%10==0):
+        if (maxnum == 0 and i%self.alltabdata[curtabnum]["stats"]["updateint"]==0) or (maxnum > 0 and i%10==0):
             self.updateplot(curtabnum)
     
             
@@ -977,7 +979,7 @@ class RunProgram(QMainWindow):
         fig = plt.figure()
         fig.clear()
         fig.set_size_inches(8,4)
-        ax = fig.add_axes([0.1,0.1,0.85,0.85])
+        ax = fig.add_axes([0.1,0.15,0.9,0.80])
         
         #adding colorbar to plot
         self.buildspectrogramcolorbar(self.spectralmap, colorrange, fig, ax)
@@ -987,6 +989,8 @@ class RunProgram(QMainWindow):
         ax.contourf(times, freqs, spectra, cmap=self.spectralmap, vmin=colorrange[0], vmax=colorrange[1])
         
         #formatting
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Frequency (Hz)')
         ax.set_ylim(freqrange[0], freqrange[1])
         ax.set_xlim(timerange[0], timerange[1])
                 
@@ -1002,7 +1006,6 @@ class RunProgram(QMainWindow):
     def getFileSaveSelection(self,filekind,fileext):
         try:
             savefile = str(QFileDialog.getSaveFileName(self, f"Select {filekind} filename to save", self.defaultfiledir, fileext, options=QFileDialog.DontUseNativeDialog))
-            print(savefile)
             #checking directory validity
             if savefile == '':
                 return False
