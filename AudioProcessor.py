@@ -46,6 +46,7 @@ from traceback import print_exc as trace_error
 
 from shutil import copy as shcopy
 from os.path import exists
+from sys import platform
 
 import pyaudio
 
@@ -195,8 +196,11 @@ class AudioProcessor(QRunnable):
                     #end of callback function
                     
                 #initializing and starting (start=True) pyaudio device input stream to callback function
-                self.stream = pyaudio.Stream(self.p, self.fs, 1, self.frametype, input=True, output=False, input_device_index=self.audiosourceindex, start=True, stream_callback=updateaudiobuffer, input_host_api_specific_stream_info=pyaudio.PaMacCoreStreamInfo())
-                
+                if platform.lower() == "darwin": #MacOS specific stream info input
+                    self.stream = pyaudio.Stream(self.p, self.fs, 1, self.frametype, input=True, output=False, input_device_index=self.audiosourceindex, start=True, stream_callback=updateaudiobuffer, input_host_api_specific_stream_info=pyaudio.PaMacCoreStreamInfo())
+                else: #windows or linux
+                    self.stream = pyaudio.Stream(self.p, self.fs, 1, self.frametype, input=True, output=False, input_device_index=self.audiosourceindex, start=True, stream_callback=updateaudiobuffer)
+                    
             except Exception:
                 trace_error()
                 self.terminate(2)
