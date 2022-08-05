@@ -57,12 +57,15 @@ def listaudiodevices():
     
     p = pyaudio.PyAudio()
     for i in range(p.get_device_count()):
-        if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-            miclist.append(p.get_device_info_by_index(i).get('name'))
-            indices.append(i)
-            #cdict = p.get_device_info_by_index(i)
-            #for ckey in cdict:
-            #    print(f"{ckey}: {cdict[ckey]}\n")
+        try:
+            if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
+                miclist.append(p.get_device_info_by_index(i).get('name'))
+                indices.append(i)
+                #cdict = p.get_device_info_by_index(i)
+                #for ckey in cdict:
+                #    print(f"{ckey}: {cdict[ckey]}\n")
+        except OSError:
+            pass
     
     return miclist,indices,p
             
