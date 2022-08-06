@@ -1,4 +1,4 @@
-# ==================================================================================================================
+# ============================================================================================================
 #     Code: AudioProcessor.py
 #     Author: Casey R. Densmore
 #     
@@ -28,7 +28,7 @@
 #       o updateprogress(ctabnum, progress): **For audio files only** updates the main loop with the progress 
 #           (displayed in progress bar) for the current thread
 #
-# ==================================================================================================================
+# ============================================================================================================
 
 import numpy as np
 from scipy.io import wavfile as sciwavfile #for wav file reading

@@ -56,6 +56,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import ListedColormap, Normalize
 from matplotlib import cm
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import AudioProcessor as AP
 
@@ -199,7 +200,7 @@ class RunProgram(QMainWindow):
             curtabnum = self.addnewtab()
     
             #creates dictionary entry for current tab- you can add additional key/value combinations for the opened tab at any point after the dictionary has been initialized
-            initstats = {"updated":False,"fs":None,"freqs":[], "N":None, "df":None, "timerange":3, "fftlen":0.3, "crange":[5,11], "reprate":0.3, "alpha":0.25, "frange":[100,2500]}
+            initstats = {"updated":False,"fs":None,"freqs":[], "N":None, "df":None, "timerange":20, "fftlen":0.5, "crange":[6,11], "reprate":0.1, "alpha":0.25, "frange":[50,1800]}
             
             self.alltabdata.append({ "tab":QWidget(), "tablayout":QGridLayout(), "mainLayout":QGridLayout(), 
                     "tabtype":"newtab", "tabwidget":QTabWidget(), "mainsettingswidget":QWidget(), "plotsavewidget":QWidget(),  "signalmaskwidget":QWidget(), "stats":initstats, "isprocessing":False, "Processor":None, "datasource":None,     "data":{"ctime":0, "maxtime":0, "times":np.array([]), "freqs":np.array([]), "spectra":np.array([[]]), "isplotted":[]}   })
@@ -230,7 +231,10 @@ class RunProgram(QMainWindow):
             self.alltabdata[curtabnum]["SpectroAxes"].set_ylabel('Frequency (Hz)')
             self.alltabdata[curtabnum]["SpectroCanvas"].setStyleSheet("background-color:transparent;")
             self.alltabdata[curtabnum]["SpectroFig"].patch.set_facecolor("None")
+            self.alltabdata[curtabnum]["SpectroFig"].set_tight_layout(True)
             self.alltabdata[curtabnum]["colorbar"] = self.gencolorbar(curtabnum,initstats["crange"])
+            
+            self.alltabdata[curtabnum]["SpectroToolbar"] = CustomToolbar(self.alltabdata[curtabnum]["SpectroCanvas"], self)
             
 
             #creating tab widget
@@ -246,14 +250,18 @@ class RunProgram(QMainWindow):
             #adding widgets to main layout
             self.alltabdata[curtabnum]["timelabel"] = QLabel("Center Time: 0/0 seconds")
             self.alltabdata[curtabnum]["timelabel"].setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-            self.alltabdata[curtabnum]["mainLayout"].addWidget(self.alltabdata[curtabnum]["SpectroCanvas"],1,0,1,3) # set dimensions
-            self.alltabdata[curtabnum]["mainLayout"].addWidget(self.alltabdata[curtabnum]["tabwidget"],2,1,1,1)
-            rowstretches = [1,30,9,1]
-            for (r,s) in zip(range(len(rowstretches)),rowstretches):
+            
+            self.alltabdata[curtabnum]["mainLayout"].addWidget(self.alltabdata[curtabnum]["SpectroToolbar"],1,3,1,1)
+            self.alltabdata[curtabnum]["mainLayout"].addWidget(self.alltabdata[curtabnum]["SpectroCanvas"],2,1,1,6) # set dimensions
+            self.alltabdata[curtabnum]["mainLayout"].addWidget(self.alltabdata[curtabnum]["tabwidget"],3,2,1,3)
+            
+            
+            rowstretches = [1,1,30,9,1]
+            for (r,s) in enumerate(rowstretches):
                 self.alltabdata[curtabnum]["mainLayout"].setRowStretch(r,s) #stretching out row with plot axes
                 
-            colstretches = [2,4,2]
-            for (c,s) in zip(range(len(colstretches)),colstretches):
+            colstretches = [1,2,2,2,2,2,1]
+            for (c,s) in enumerate(colstretches):
                 self.alltabdata[curtabnum]["mainLayout"].setColumnStretch(c,s) #stretching out row with plot axes
 
             
@@ -283,7 +291,7 @@ class RunProgram(QMainWindow):
             self.alltabdata[curtabnum]["tabwidgets"]["timerange"].setRange(0.25, 30)
             self.alltabdata[curtabnum]["tabwidgets"]["timerange"].setSingleStep(0.25)
             self.alltabdata[curtabnum]["tabwidgets"]["timerange"].setDecimals(2)
-            self.alltabdata[curtabnum]["tabwidgets"]["timerange"].setValue(10)
+            self.alltabdata[curtabnum]["tabwidgets"]["timerange"].setValue(initstats['timerange'])
             
             self.alltabdata[curtabnum]["tabwidgets"]["cmintitle"] = QLabel("Color Minimum: ")
             self.alltabdata[curtabnum]["tabwidgets"]["cmintitle"].setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -985,8 +993,10 @@ class RunProgram(QMainWindow):
         self.buildspectrogramcolorbar(self.spectralmap, colorrange, fig, ax)
         
         #adding data to plot
-        # ax.imshow(spectra, aspect="auto", cmap=self.spectralmap, vmin=colorrange[0], vmax=colorrange[1], extent=extent)
-        ax.contourf(times, freqs, spectra, cmap=self.spectralmap, vmin=colorrange[0], vmax=colorrange[1])
+        spectra[spectra < colorrange[0]] = colorrange[0]
+        spectra[spectra > colorrange[1]] = colorrange[1]
+        levels = np.linspace(colorrange[0], colorrange[1], len(self.cdata))
+        ax.contourf(times, freqs, spectra, levels=levels, colors=self.cdata)
         
         #formatting
         ax.set_xlabel('Time (s)')
@@ -1215,6 +1225,25 @@ class AudioWindowSignals(QObject):
     closed = pyqtSignal(int, int, str)
         
         
+    
+    
+    
+    
+    
+# =============================================================================
+#        CUSTOM AXIS TOOLBAR
+# =============================================================================
+#class to customize nagivation toolbar in profile editor tab to control profile plots (pan/zoom/reset view)
+class CustomToolbar(NavigationToolbar):
+    def __init__(self,canvas_,parent_):
+        self.toolitems = (
+            ('Home', 'Reset Original View', 'home', 'home'),
+            ('Back', 'Go To Previous View', 'back', 'back'),
+            ('Forward', 'Return to Next View', 'forward', 'forward'),
+            ('Pan', 'Click and Drag to Pan', 'move', 'pan'),
+            ('Zoom', 'Select Region to Zoon', 'zoom_to_rect', 'zoom'),
+            ('Save', 'Save the figure', 'filesave', 'save_figure'),)
+        NavigationToolbar.__init__(self,canvas_,parent_)
         
         
 
